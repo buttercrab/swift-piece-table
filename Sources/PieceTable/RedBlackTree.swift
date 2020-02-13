@@ -27,8 +27,9 @@ public class RedBlackTreeNode<Element: Equatable & Measurable> {
             self._count & 1
         }
 
+        // assert: val is 0 or 1
         set(val) {
-            self._count = _count & ~1 + val
+            self._count = _count & ~1 | val
         }
     }
 
@@ -195,8 +196,8 @@ extension RedBlackTree {
         n.parent = a
         b?.parent = n
 
+        a._count = n._count
         n.update()
-        a.update()
 
         if p == nil {
             self.root = a
@@ -227,8 +228,8 @@ extension RedBlackTree {
         n.parent = a
         b?.parent = n
 
+        a._count = n._count
         n.update()
-        a.update()
 
         if p == nil {
             self.root = a
@@ -293,11 +294,9 @@ extension RedBlackTree {
 }
 
 extension RedBlackTree {
+    @inline(__always)
     private func siblingNode(_ n: Node) -> Node? {
-        if let parent = n.parent {
-            return parent.left == n ? parent.right : parent.left
-        }
-        return nil
+        n.parent?.left == n ? n.parent?.right : n.parent?.left
     }
 
     private func balanceAfterInsert(_ n: Node) {
@@ -319,7 +318,7 @@ extension RedBlackTree {
                 continue
             }
 
-            if g.left == n {
+            if g.left == p {
                 if p.right == n {
                     self.leftRotate(p)
                     self.rightRotate(g)
@@ -531,5 +530,38 @@ extension RedBlackTree: Sequence {
 
     public func makeIterator() -> Iterator {
         Iterator(self.startNode)
+    }
+}
+
+extension RedBlackTree {
+    private func _checkValid(_ node: Node?) -> (Bool, Int) {
+        guard let node = node else {
+            return (true, 0)
+        }
+
+        if node.parent?.color == 1 && node.color == 1 {
+            return (false, 0)
+        }
+
+        let a = self._checkValid(node.left)
+        let b = self._checkValid(node.right)
+
+        if !a.0 || !b.0 {
+            return (false, 0)
+        }
+
+        if a.1 != b.1 {
+            return (false, 0)
+        }
+
+        if node.color == 0 {
+            return (true, a.1 + 1)
+        } else {
+            return (true, a.1)
+        }
+    }
+
+    public func checkValid() -> Bool {
+        self._checkValid(self.root).0
     }
 }

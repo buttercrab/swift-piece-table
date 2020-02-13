@@ -112,7 +112,7 @@ public class PieceTable {
         }
     }
 
-    fileprivate var tree: RedBlackTree<Piece> = RedBlackTree()
+    public var tree: RedBlackTree<Piece> = RedBlackTree()
 
     public init(origin: String = "", bufferSize: Int = 64_000) {
         self.buffer = Buffer(origin: origin, bufferSize: bufferSize)
@@ -185,12 +185,13 @@ extension PieceTable {
         }
 
         var startNode = self.tree.findContains(position: start)
-        (_, startNode) = self.splitNode(node: startNode, pos: start)
+        _ = self.splitNode(node: startNode, pos: start)
+        startNode = self.tree.findContains(position: start)
         var endNode = self.tree.findContains(position: end)
         _ = self.splitNode(node: endNode, pos: end)
         endNode = self.tree.findContains(position: end)
 
-        while startNode != endNode {
+        while !(startNode == endNode) {
             let next = startNode?.next()
             self.tree.erase(startNode!)
             startNode = next

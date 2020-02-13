@@ -55,28 +55,69 @@ class Timer {
 }
 
 final class PieceTableTests: XCTestCase {
-    func testExample() {
-        let table = PieceTable()
-        var s = ""
-        let timer1 = Timer(title: "String Operation")
-        let timer2 = Timer(title: "PieceTable Operation")
-        let iterationCount = 10000
+    var table = PieceTable()
+    var s = ""
+    let iterationCount = 1000
+    let stringCount = 20
+
+    override func setUp() {
+        super.setUp()
+    }
+
+    override func tearDown() {
+        super.tearDown()
+    }
+
+    func testInsert() {
+        self.s = ""
+        self.table = PieceTable()
         for _ in 0..<iterationCount {
-            let pos = Int.random(in: 0...s.count)
-            let t = randomString(length: 6)
-            timer1.start()
-            s.insert(contentsOf: t, at: s.index(s.startIndex, offsetBy: pos))
-            timer1.pause()
-            timer2.start()
-            try! table.write(content: t, from: pos)
-            timer2.pause()
+            let pos = Int.random(in: 0...self.s.count)
+            let t = randomString(length: self.stringCount)
+            self.s.insert(contentsOf: t, at: self.s.index(self.s.startIndex, offsetBy: pos))
+            try! self.table.write(content: t, from: pos)
         }
-        print("string: \(timer1.time / Double(iterationCount) * 1e6) us")
-        print("piece:  \(timer2.time / Double(iterationCount) * 1e6) us")
-        XCTAssertEqual(table.content, s)
+        XCTAssertEqual(self.table.content, self.s)
+    }
+
+    func testInsertPerformance() {
+        self.table = PieceTable()
+        self.measure {
+            for _ in 0..<iterationCount {
+                let pos = Int.random(in: 0...self.table.count)
+                let t = randomString(length: self.stringCount)
+                try! self.table.write(content: t, from: pos)
+            }
+        }
+    }
+
+    func testDelete() {
+        self.s = ""
+        self.table = PieceTable()
+        for _ in 0..<iterationCount {
+            let pos = Int.random(in: 0...self.s.count)
+            let t = randomString(length: self.stringCount)
+            self.s.insert(contentsOf: t, at: self.s.index(self.s.startIndex, offsetBy: pos))
+            try! self.table.write(content: t, from: pos)
+        }
+
+        for _ in 0..<iterationCount {
+            var pos = Int.random(in: 0...self.s.count - self.stringCount)
+            let start = self.s.index(self.s.startIndex, offsetBy: pos)
+            let end = self.s.index(start, offsetBy: self.stringCount)
+            self.s.removeSubrange(start..<end)
+            try! self.table.delete(pos..<pos + self.stringCount)
+
+            pos = Int.random(in: 0...self.s.count)
+            let t = randomString(length: self.stringCount)
+            self.s.insert(contentsOf: t, at: self.s.index(self.s.startIndex, offsetBy: pos))
+            try! self.table.write(content: t, from: pos)
+        }
     }
 
     static var allTests = [
-        ("testExample", testExample),
+        ("testInsert", testInsert),
+        ("testInsertPerformance", testInsertPerformance),
+        ("testDelete", testDelete),
     ]
 }
