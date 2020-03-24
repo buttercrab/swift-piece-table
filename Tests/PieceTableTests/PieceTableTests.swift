@@ -53,7 +53,7 @@ class Timer {
 }
 
 final class PieceTableTests: XCTestCase {
-    var table = PieceTable()
+    var table = PieceTableBase()
     var s = ""
     let iterationCount = 1000
     let stringCount = 20
@@ -68,7 +68,7 @@ final class PieceTableTests: XCTestCase {
 
     func testInsert() {
         s = ""
-        table = PieceTable()
+        table = PieceTableBase()
         for _ in 0..<iterationCount {
             let pos = Int.random(in: 0...s.count)
             let t = randomString(length: stringCount)
@@ -79,7 +79,7 @@ final class PieceTableTests: XCTestCase {
     }
 
     func testInsertPerformance() {
-        table = PieceTable()
+        table = PieceTableBase()
         measure {
             for _ in 0..<iterationCount {
                 let pos = Int.random(in: 0...self.table.count)
@@ -91,7 +91,7 @@ final class PieceTableTests: XCTestCase {
 
     func testDelete() {
         s = ""
-        table = PieceTable()
+        table = PieceTableBase()
         for _ in 0..<iterationCount {
             let pos = Int.random(in: 0...s.count)
             let t = randomString(length: stringCount)

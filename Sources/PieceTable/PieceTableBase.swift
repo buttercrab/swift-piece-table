@@ -92,7 +92,7 @@ extension Buffer {
     }
 }
 
-public class PieceTable {
+public class PieceTableBase {
     public typealias Index = Int
     public typealias Element = Character
     fileprivate typealias Node = RedBlackTreeNode<Piece>
@@ -119,7 +119,7 @@ enum IndexError: Error {
     case outOfRange
 }
 
-extension PieceTable {
+extension PieceTableBase {
     fileprivate func splitNode(node: Node?, pos: Index) -> (Node?, Node?) {
         guard let node = node else {
             return (nil, nil)
@@ -197,7 +197,7 @@ extension PieceTable {
     }
 }
 
-extension PieceTable {
+extension PieceTableBase {
     public var startIndex: Index {
         0
     }
@@ -207,7 +207,7 @@ extension PieceTable {
     }
 }
 
-extension PieceTable {
+extension PieceTableBase {
     public func find(_ s: String) -> [Index] {
         var res = [Index]()
         var fail = [Int](repeating: 0, count: s.count)
@@ -246,7 +246,7 @@ extension PieceTable {
     }
 }
 
-extension PieceTable {
+extension PieceTableBase {
     public var content: String {
         var res = ""
         for value in tree {
@@ -257,11 +257,11 @@ extension PieceTable {
 }
 
 public class SubPieceTable {
-    private let table: PieceTable
-    fileprivate let start: PieceTable.Index
-    fileprivate let end: PieceTable.Index
+    private let table: PieceTableBase
+    fileprivate let start: PieceTableBase.Index
+    fileprivate let end: PieceTableBase.Index
 
-    fileprivate init(table: PieceTable, start: PieceTable.Index, end: PieceTable.Index) {
+    fileprivate init(table: PieceTableBase, start: PieceTableBase.Index, end: PieceTableBase.Index) {
         self.table = table
         self.start = start
         self.end = end
@@ -292,7 +292,7 @@ public class SubPieceTable {
     }
 }
 
-extension PieceTable {
+extension PieceTableBase {
     public subscript(index: Index) -> Character {
         guard let node = tree.findContains(position: index) else {
             fatalError("[PieceTable] Index out of range")
@@ -310,15 +310,15 @@ extension PieceTable {
     }
 }
 
-extension PieceTable: Sequence {
+extension PieceTableBase: Sequence {
     public class Iterator: IteratorProtocol {
         public typealias Element = Character
 
         fileprivate var node: Node?
         fileprivate var index: Index
-        fileprivate let table: PieceTable
+        fileprivate let table: PieceTableBase
 
-        fileprivate init(node: Node?, index: Index, table: PieceTable) {
+        fileprivate init(node: Node?, index: Index, table: PieceTableBase) {
             self.node = node
             self.index = index
             self.table = table
