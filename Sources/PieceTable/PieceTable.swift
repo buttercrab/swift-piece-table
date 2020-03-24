@@ -1,11 +1,6 @@
-public class Piece: Measurable {
+public class Piece {
     fileprivate let index: Int
     fileprivate let start: Int, end: Int
-    public var count: Int {
-        get {
-            end - start
-        }
-    }
 
     public init(index: Int, start: Int, end: Int) {
         self.index = index
@@ -16,9 +11,13 @@ public class Piece: Measurable {
 
 extension Piece {
     fileprivate var isEmpty: Bool {
-        get {
-            self.start == self.end
-        }
+        start == end
+    }
+}
+
+extension Piece: Measurable {
+    public var count: Int {
+        end - start
     }
 }
 
@@ -30,11 +29,11 @@ extension Piece: Equatable {
 
 extension Piece {
     fileprivate func split(at: Int) -> (Piece, Piece) {
-        (Piece(index: self.index, start: self.start, end: at), Piece(index: self.index, start: at, end: self.end))
+        (Piece(index: index, start: start, end: at), Piece(index: index, start: at, end: end))
     }
 }
 
-fileprivate class Buffer {
+private class Buffer {
     public typealias Index = (Int, Int)
 
     public var data = [[Character]]()
@@ -42,22 +41,22 @@ fileprivate class Buffer {
 
     public init(origin: String, bufferSize: Int) {
         self.bufferSize = bufferSize
-        _ = self.append(origin)
+        _ = append(origin)
     }
 }
 
 extension Buffer {
     public func getAllPieces() -> [Piece] {
         var res = [Piece]()
-        res.reserveCapacity(self.data.count)
-        for i in 0..<self.data.count {
-            res.append(Piece(index: i, start: self.data[i].startIndex, end: self.data[i].endIndex))
+        res.reserveCapacity(data.count)
+        for i in 0..<data.count {
+            res.append(Piece(index: i, start: data[i].startIndex, end: data[i].endIndex))
         }
         return res
     }
 
     public func getContent(_ piece: Piece) -> ArraySlice<Character> {
-        self.data[piece.index][piece.start..<piece.end]
+        data[piece.index][piece.start..<piece.end]
     }
 }
 
@@ -67,26 +66,26 @@ extension Buffer {
         var res = [Piece]()
         let content = Array(content)
 
-        if let lastCount = self.data.last?.count {
+        if let lastCount = data.last?.count {
             let start = lastCount
-            let size = min(content.count - index, self.bufferSize - start)
-            self.data[self.data.count - 1].append(contentsOf: content[index..<index + size])
+            let size = min(content.count - index, bufferSize - start)
+            data[data.count - 1].append(contentsOf: content[index..<index + size])
             index += size
-            res.append(Piece(index: self.data.count - 1, start: start, end: start + size))
+            res.append(Piece(index: data.count - 1, start: start, end: start + size))
         }
 
         while index < content.count {
-            if self.data.isEmpty || self.data.last!.count == self.bufferSize {
+            if data.isEmpty || data.last!.count == bufferSize {
                 var arr = [Character]()
                 arr.reserveCapacity(bufferSize)
-                self.data.append(arr)
+                data.append(arr)
             }
 
-            let start = self.data.last!.count
-            let size = min(content.count - index, self.bufferSize - start)
-            self.data[self.data.count - 1].append(contentsOf: content[index..<index + size])
+            let start = data.last!.count
+            let size = min(content.count - index, bufferSize - start)
+            data[data.count - 1].append(contentsOf: content[index..<index + size])
             index += size
-            res.append(Piece(index: self.data.count - 1, start: start, end: start + size))
+            res.append(Piece(index: data.count - 1, start: start, end: start + size))
         }
 
         return res
@@ -100,23 +99,19 @@ public class PieceTable {
 
     fileprivate var buffer: Buffer
     public var bufferSize: Int {
-        get {
-            self.buffer.bufferSize
-        }
+        buffer.bufferSize
     }
 
     private var _count: Int = 0
     public var count: Int {
-        get {
-            self._count
-        }
+        _count
     }
 
     public var tree: RedBlackTree<Piece> = RedBlackTree()
 
-    public init(origin: String = "", bufferSize: Int = 64_000) {
-        self.buffer = Buffer(origin: origin, bufferSize: bufferSize)
-        try! self.write(content: origin, from: 0)
+    public init(origin: String = "", bufferSize: Int = 64000) {
+        buffer = Buffer(origin: origin, bufferSize: bufferSize)
+        try! write(content: origin, from: 0)
     }
 }
 
@@ -133,10 +128,10 @@ extension PieceTable {
         let start = node.position
         let (a, b) = node.value.split(at: pos - start + node.value.start)
 
-        if !a.isEmpty && !b.isEmpty {
-            self.tree.erase(node)
-            return (self.tree.insert(position: start, value: a),
-                    self.tree.insert(position: pos, value: b))
+        if !a.isEmpty, !b.isEmpty {
+            tree.erase(node)
+            return (tree.insert(position: start, value: a),
+                    tree.insert(position: pos, value: b))
         }
 
         return (nil, nil)
@@ -153,66 +148,62 @@ extension PieceTable {
 
         let value = Piece(index: node.value.index, start: before.value.start, end: node.value.end)
         let pos = before.position
-        self.tree.erase(node)
-        self.tree.erase(before)
-        return self.tree.insert(position: pos, value: value)
+        tree.erase(node)
+        tree.erase(before)
+        return tree.insert(position: pos, value: value)
     }
 
     public func write(content: String, from: Index) throws {
-        if from < 0 || from > self.count {
+        if from < 0 || from > count {
             throw IndexError.outOfRange
         }
 
-        let node = self.tree.findContains(position: from)
-        _ = self.splitNode(node: node, pos: from)
-        let pieces = self.buffer.append(content)
+        let node = tree.findContains(position: from)
+        _ = splitNode(node: node, pos: from)
+        let pieces = buffer.append(content)
 
         var index = from
         for piece in pieces {
-            _ = self.combineNode(self.tree.insert(position: index, value: piece))
+            _ = combineNode(tree.insert(position: index, value: piece))
             index += piece.count
         }
 
-        self._count += content.count
+        _count += content.count
     }
 
     public func delete(_ range: Range<Index>) throws {
         let start = range.lowerBound
         let end = start + range.count
 
-        if start < 0 || start > self.count || end < 0 || end > self.count {
+        if start < 0 || start > count || end < 0 || end > count {
             throw IndexError.outOfRange
         }
 
-        var startNode = self.tree.findContains(position: start)
-        _ = self.splitNode(node: startNode, pos: start)
-        startNode = self.tree.findContains(position: start)
-        var endNode = self.tree.findContains(position: end)
-        _ = self.splitNode(node: endNode, pos: end)
-        endNode = self.tree.findContains(position: end)
+        var startNode = tree.findContains(position: start)
+        _ = splitNode(node: startNode, pos: start)
+        startNode = tree.findContains(position: start)
+        var endNode = tree.findContains(position: end)
+        _ = splitNode(node: endNode, pos: end)
+        endNode = tree.findContains(position: end)
 
         while !(startNode == endNode) {
             let next = startNode?.next()
-            self.tree.erase(startNode!)
+            tree.erase(startNode!)
             startNode = next
         }
-        _ = self.combineNode(endNode)
+        _ = combineNode(endNode)
 
-        self._count -= range.count
+        _count -= range.count
     }
 }
 
 extension PieceTable {
     public var startIndex: Index {
-        get {
-            0
-        }
+        0
     }
 
     public var endIndex: Index {
-        get {
-            self._count
-        }
+        _count
     }
 }
 
@@ -224,7 +215,7 @@ extension PieceTable {
 
         var j = 0
         for i in 0..<s.count {
-            while j > 0 && s[i] != s[j] {
+            while j > 0, s[i] != s[j] {
                 j = fail[j]
             }
             if s[i] == s[j] {
@@ -235,9 +226,9 @@ extension PieceTable {
 
         var i = 0
         j = 0
-        for value in self.tree {
-            for c in self.buffer.getContent(value) {
-                while j > 0 && c != s[j] {
+        for value in tree {
+            for c in buffer.getContent(value) {
+                while j > 0, c != s[j] {
                     j = fail[j]
                 }
                 if c == s[j] {
@@ -257,18 +248,16 @@ extension PieceTable {
 
 extension PieceTable {
     public var content: String {
-        get {
-            var res = ""
-            for value in self.tree {
-                res += self.buffer.getContent(value)
-            }
-            return res
+        var res = ""
+        for value in tree {
+            res += buffer.getContent(value)
         }
+        return res
     }
 }
 
 public class SubPieceTable {
-    fileprivate let table: PieceTable
+    private let table: PieceTable
     fileprivate let start: PieceTable.Index
     fileprivate let end: PieceTable.Index
 
@@ -279,44 +268,42 @@ public class SubPieceTable {
     }
 
     public var content: String {
-        get {
-            var res = ""
-            guard var startNode = self.table.tree.findContains(position: self.start) else {
-                return ""
-            }
-            let endNode = self.table.tree.findContains(position: self.end)
-            var start = self.start - startNode.value.start
-
-            while startNode != endNode {
-                res += self.table.buffer.data[startNode.value.index][start..<startNode.value.end]
-                if let next = startNode.next() {
-                    startNode = next
-                    start = 0
-                } else {
-                    break
-                }
-            }
-
-            if let last = endNode {
-                res += self.table.buffer.data[last.value.index][start..<self.end - last.value.start]
-            }
-            return res
+        var res = ""
+        guard var startNode = table.tree.findContains(position: self.start) else {
+            return ""
         }
+        let endNode = table.tree.findContains(position: end)
+        var start = self.start - startNode.value.start
+
+        while startNode != endNode {
+            res += table.buffer.data[startNode.value.index][start..<startNode.value.end]
+            if let next = startNode.next() {
+                startNode = next
+                start = 0
+            } else {
+                break
+            }
+        }
+
+        if let last = endNode {
+            res += table.buffer.data[last.value.index][start..<end - last.value.start]
+        }
+        return res
     }
 }
 
 extension PieceTable {
     public subscript(index: Index) -> Character {
-        guard let node = self.tree.findContains(position: index) else {
+        guard let node = tree.findContains(position: index) else {
             fatalError("[PieceTable] Index out of range")
         }
-        return self.buffer.getContent(node.value)[index - node.value.start]
+        return buffer.getContent(node.value)[index - node.value.start]
     }
 
     public subscript(range: Range<Index>) -> SubPieceTable {
         let start = range.lowerBound
         let end = start + range.count
-        if start < 0 || end > self.count {
+        if start < 0 || end > count {
             fatalError("[PieceTable] Index out of range")
         }
         return SubPieceTable(table: self, start: start, end: end)
@@ -349,11 +336,11 @@ extension PieceTable: Sequence {
             guard let node = self.node else {
                 return nil
             }
-            return self.table.buffer.getContent(node.value)[self.index - node.value.start]
+            return table.buffer.getContent(node.value)[index - node.value.start]
         }
     }
 
     public func makeIterator() -> Iterator {
-        Iterator(node: self.tree.startNode, index: 0, table: self)
+        Iterator(node: tree.startNode, index: 0, table: self)
     }
 }

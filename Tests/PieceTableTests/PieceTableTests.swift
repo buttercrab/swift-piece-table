@@ -1,8 +1,8 @@
-import XCTest
 @testable import PieceTable
+import XCTest
 
 func randomUnicodeCharacter() -> String {
-    let i = arc4random_uniform(1114111)
+    let i = arc4random_uniform(1_114_111)
     return (i > 55295 && i < 57344) ? randomUnicodeCharacter() : String(UnicodeScalar(i)!)
 }
 
@@ -22,35 +22,33 @@ class Timer {
     private var _time: Double
     private var isRunning: Bool
     public var time: Double {
-        get {
-            _time + (isRunning ? Double(CFAbsoluteTimeGetCurrent() - lastStart) : 0)
-        }
+        _time + (isRunning ? Double(CFAbsoluteTimeGetCurrent() - lastStart) : 0)
     }
 
     public init(title: String = "") {
         self.title = title
-        self.lastStart = 0
-        self._time = 0
-        self.isRunning = false
+        lastStart = 0
+        _time = 0
+        isRunning = false
     }
 
     public func start() {
-        if self.isRunning == false {
-            self.lastStart = CFAbsoluteTimeGetCurrent()
-            self.isRunning = true
+        if isRunning == false {
+            lastStart = CFAbsoluteTimeGetCurrent()
+            isRunning = true
         }
     }
 
     public func pause() {
-        if self.isRunning == true {
-            let timeElapsed = CFAbsoluteTimeGetCurrent() - self.lastStart
-            self._time += Double(timeElapsed)
-            self.isRunning = false
+        if isRunning == true {
+            let timeElapsed = CFAbsoluteTimeGetCurrent() - lastStart
+            _time += Double(timeElapsed)
+            isRunning = false
         }
     }
 
     public func printTime() {
-        print("timer \(self.title): \(self._time)")
+        print("timer \(title): \(_time)")
     }
 }
 
@@ -69,20 +67,20 @@ final class PieceTableTests: XCTestCase {
     }
 
     func testInsert() {
-        self.s = ""
-        self.table = PieceTable()
+        s = ""
+        table = PieceTable()
         for _ in 0..<iterationCount {
-            let pos = Int.random(in: 0...self.s.count)
-            let t = randomString(length: self.stringCount)
-            self.s.insert(contentsOf: t, at: self.s.index(self.s.startIndex, offsetBy: pos))
-            try! self.table.write(content: t, from: pos)
+            let pos = Int.random(in: 0...s.count)
+            let t = randomString(length: stringCount)
+            s.insert(contentsOf: t, at: s.index(s.startIndex, offsetBy: pos))
+            try! table.write(content: t, from: pos)
         }
-        XCTAssertEqual(self.table.content, self.s)
+        XCTAssertEqual(table.content, s)
     }
 
     func testInsertPerformance() {
-        self.table = PieceTable()
-        self.measure {
+        table = PieceTable()
+        measure {
             for _ in 0..<iterationCount {
                 let pos = Int.random(in: 0...self.table.count)
                 let t = randomString(length: self.stringCount)
@@ -92,26 +90,26 @@ final class PieceTableTests: XCTestCase {
     }
 
     func testDelete() {
-        self.s = ""
-        self.table = PieceTable()
+        s = ""
+        table = PieceTable()
         for _ in 0..<iterationCount {
-            let pos = Int.random(in: 0...self.s.count)
-            let t = randomString(length: self.stringCount)
-            self.s.insert(contentsOf: t, at: self.s.index(self.s.startIndex, offsetBy: pos))
-            try! self.table.write(content: t, from: pos)
+            let pos = Int.random(in: 0...s.count)
+            let t = randomString(length: stringCount)
+            s.insert(contentsOf: t, at: s.index(s.startIndex, offsetBy: pos))
+            try! table.write(content: t, from: pos)
         }
 
         for _ in 0..<iterationCount {
-            var pos = Int.random(in: 0...self.s.count - self.stringCount)
-            let start = self.s.index(self.s.startIndex, offsetBy: pos)
-            let end = self.s.index(start, offsetBy: self.stringCount)
-            self.s.removeSubrange(start..<end)
-            try! self.table.delete(pos..<pos + self.stringCount)
+            var pos = Int.random(in: 0...s.count - stringCount)
+            let start = s.index(s.startIndex, offsetBy: pos)
+            let end = s.index(start, offsetBy: stringCount)
+            s.removeSubrange(start..<end)
+            try! table.delete(pos..<pos + stringCount)
 
-            pos = Int.random(in: 0...self.s.count)
-            let t = randomString(length: self.stringCount)
-            self.s.insert(contentsOf: t, at: self.s.index(self.s.startIndex, offsetBy: pos))
-            try! self.table.write(content: t, from: pos)
+            pos = Int.random(in: 0...s.count)
+            let t = randomString(length: stringCount)
+            s.insert(contentsOf: t, at: s.index(s.startIndex, offsetBy: pos))
+            try! table.write(content: t, from: pos)
         }
     }
 

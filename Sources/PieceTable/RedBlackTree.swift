@@ -5,9 +5,7 @@ public protocol Measurable {
 public class RedBlackTreeNode<Element: Equatable & Measurable> {
     fileprivate var _value: Element
     public var value: Element {
-        get {
-            self._value
-        }
+        _value
     }
 
     /// count contains size of subtree and color
@@ -17,19 +15,17 @@ public class RedBlackTreeNode<Element: Equatable & Measurable> {
     ///  - 1: red
     fileprivate var _count: Int
     public var count: Int {
-        get {
-            self._count >> 1
-        }
+        _count >> 1
     }
 
     fileprivate var color: Int {
         get {
-            self._count & 1
+            _count & 1
         }
 
         // assert: val is 0 or 1
         set(val) {
-            self._count = _count & ~1 | val
+            _count = _count & ~1 | val
         }
     }
 
@@ -38,8 +34,8 @@ public class RedBlackTreeNode<Element: Equatable & Measurable> {
     fileprivate weak var parent: RedBlackTreeNode?
 
     public init(value: Element, left: RedBlackTreeNode?, right: RedBlackTreeNode?, parent: RedBlackTreeNode?) {
-        self._value = value
-        self._count = 3 // (1 << 1) + 1
+        _value = value
+        _count = 3 // (1 << 1) + 1
         self.left = left
         self.right = right
         self.parent = parent
@@ -63,8 +59,8 @@ extension RedBlackTreeNode: Equatable {
 /// Node update for count
 extension RedBlackTreeNode {
     fileprivate func update() {
-        let count = (self.left?.count ?? 0) + (self.right?.count ?? 0) + self.value.count
-        self._count = count << 1 + self._count & 1
+        let count = (left?.count ?? 0) + (right?.count ?? 0) + value.count
+        _count = count << 1 + _count & 1
     }
 
     fileprivate func updateToTop() {
@@ -97,22 +93,20 @@ extension RedBlackTreeNode {
 
 extension RedBlackTreeNode {
     public var position: Int {
-        get {
-            var res = self.left?.count ?? 0
-            var n = self
+        var res = left?.count ?? 0
+        var n = self
 
-            while true {
-                guard let parent = n.parent else {
-                    break
-                }
-                if parent.right == n {
-                    res += (parent.left?.count ?? 0) + parent.value.count
-                }
-                n = parent
+        while true {
+            guard let parent = n.parent else {
+                break
             }
-
-            return res
+            if parent.right == n {
+                res += (parent.left?.count ?? 0) + parent.value.count
+            }
+            n = parent
         }
+
+        return res
     }
 }
 
@@ -159,19 +153,16 @@ public class RedBlackTree<Element: Equatable & Measurable> {
     private var root: Node?
     private var _count: Int
     public var count: Int {
-        get {
-            self._count
-        }
+        _count
     }
 
     public init() {
-        self._count = 0
+        _count = 0
     }
 }
 
 /// Rotation in tree
 extension RedBlackTree {
-
     /// Left Rotation
     ///
     ///   p            p
@@ -200,7 +191,7 @@ extension RedBlackTree {
         n.update()
 
         if p == nil {
-            self.root = a
+            root = a
         }
     }
 
@@ -232,14 +223,14 @@ extension RedBlackTree {
         n.update()
 
         if p == nil {
-            self.root = a
+            root = a
         }
     }
 }
 
 extension RedBlackTree {
     private func findOrLast(_ position: inout Int) -> Node? {
-        guard var n = self.root else {
+        guard var n = root else {
             return nil
         }
 
@@ -264,7 +255,7 @@ extension RedBlackTree {
     }
 
     public func findContains(position: Int) -> Node? {
-        guard var n = self.root else {
+        guard var n = root else {
             return nil
         }
         var pos = position
@@ -272,7 +263,7 @@ extension RedBlackTree {
         while true {
             let k = n.left?.count ?? 0
 
-            if k <= pos && pos < k + n.value.count {
+            if k <= pos, pos < k + n.value.count {
                 return n
             }
             if pos < k {
@@ -301,13 +292,13 @@ extension RedBlackTree {
 
     private func balanceAfterInsert(_ n: Node) {
         var n = n
-        while n != self.root {
+        while n != root {
             let p = n.parent!
             if p.color == 0 {
                 break
             }
 
-            let u = self.siblingNode(p)
+            let u = siblingNode(p)
             let g = p.parent!
 
             if u?.color == 1 {
@@ -320,23 +311,23 @@ extension RedBlackTree {
 
             if g.left == p {
                 if p.right == n {
-                    self.leftRotate(p)
-                    self.rightRotate(g)
+                    leftRotate(p)
+                    rightRotate(g)
                     g.color = 1
                     n.color = 0
                 } else {
-                    self.rightRotate(g)
+                    rightRotate(g)
                     g.color = 1
                     p.color = 0
                 }
             } else {
                 if p.left == n {
-                    self.rightRotate(p)
-                    self.leftRotate(g)
+                    rightRotate(p)
+                    leftRotate(g)
                     g.color = 1
                     n.color = 0
                 } else {
-                    self.leftRotate(g)
+                    leftRotate(g)
                     g.color = 1
                     p.color = 0
                 }
@@ -344,12 +335,12 @@ extension RedBlackTree {
             break
         }
 
-        self.root?.color = 0
+        root?.color = 0
     }
 
     private func balanceAfterErase(_ n: Node) {
         var n = n
-        while n != self.root {
+        while n != root {
             let p = n.parent!
 
             if n == p.left {
@@ -358,14 +349,14 @@ extension RedBlackTree {
                 let r = s?.right
 
                 if r?.color == 1 {
-                    self.leftRotate(p)
+                    leftRotate(p)
                     r?.color = 0
                     s?.color = p.color
                     p.color = 1
                     break
                 }
                 if l?.color == 1 {
-                    self.rightRotate(s!)
+                    rightRotate(s!)
                     s?.color = 1
                     l?.color = 0
                     continue
@@ -376,7 +367,7 @@ extension RedBlackTree {
                     break
                 }
                 if s?.color == 1 {
-                    self.leftRotate(p)
+                    leftRotate(p)
                     p.color = 1
                     s?.color = 0
                     continue
@@ -389,14 +380,14 @@ extension RedBlackTree {
                 let r = s?.right
 
                 if l?.color == 1 {
-                    self.rightRotate(p)
+                    rightRotate(p)
                     l?.color = 0
                     s?.color = p.color
                     p.color = 1
                     break
                 }
                 if r?.color == 1 {
-                    self.leftRotate(s!)
+                    leftRotate(s!)
                     s?.color = 1
                     r?.color = 0
                     continue
@@ -407,7 +398,7 @@ extension RedBlackTree {
                     break
                 }
                 if s?.color == 1 {
-                    self.rightRotate(p)
+                    rightRotate(p)
                     p.color = 1
                     s?.color = 0
                     continue
@@ -421,12 +412,12 @@ extension RedBlackTree {
 
 extension RedBlackTree {
     public func insert(position: Int, value: Element) -> Node {
-        self._count += 1
+        _count += 1
         var position = position
         let new = Node(value: value)
-        guard let last = self.findOrLast(&position) else {
-            self.root = new
-            self.root?.color = 0
+        guard let last = findOrLast(&position) else {
+            root = new
+            root?.color = 0
             return new
         }
 
@@ -438,17 +429,17 @@ extension RedBlackTree {
         new.parent = last
         new.updateToTop()
 
-        self.balanceAfterInsert(new)
+        balanceAfterInsert(new)
         return new
     }
 
     public func erase(_ node: Node) {
-        if self._count == 0 {
+        if _count == 0 {
             return
         }
-        self._count -= 1
-        if self._count == 0 {
-            self.root = nil
+        _count -= 1
+        if _count == 0 {
+            root = nil
             return
         }
 
@@ -466,8 +457,8 @@ extension RedBlackTree {
         let child = last.left ?? last.right
 
         if let parent = last.parent {
-            if child?.color ?? 0 == 0 && last.color == 0 {
-                self.balanceAfterErase(last)
+            if child?.color ?? 0 == 0, last.color == 0 {
+                balanceAfterErase(last)
             } else {
                 child?.color = 0
             }
@@ -480,7 +471,7 @@ extension RedBlackTree {
             child?.parent = parent
             parent.updateToTop()
         } else {
-            self.root = child
+            root = child
             child?.parent = nil
             child?.color = 0
         }
@@ -493,15 +484,11 @@ extension RedBlackTree {
 
 extension RedBlackTree {
     public var startNode: Node? {
-        get {
-            self.root?.min()
-        }
+        root?.min()
     }
 
     public var endNode: Node? {
-        get {
-            self.root?.max()
-        }
+        root?.max()
     }
 }
 
@@ -511,25 +498,23 @@ extension RedBlackTree: Sequence {
 
         private var _value: Node?
         public var value: Node? {
-            get {
-                self._value
-            }
+            _value
         }
 
         public init(_ value: Node?) {
-            self._value = value
+            _value = value
         }
 
         public func next() -> Element? {
             defer {
                 self._value = self._value?.next()
             }
-            return self._value?.value
+            return _value?.value
         }
     }
 
     public func makeIterator() -> Iterator {
-        Iterator(self.startNode)
+        Iterator(startNode)
     }
 }
 
@@ -543,8 +528,8 @@ extension RedBlackTree {
             return (false, 0)
         }
 
-        let a = self._checkValid(node.left)
-        let b = self._checkValid(node.right)
+        let a = _checkValid(node.left)
+        let b = _checkValid(node.right)
 
         if !a.0 || !b.0 {
             return (false, 0)
@@ -562,6 +547,6 @@ extension RedBlackTree {
     }
 
     public func checkValid() -> Bool {
-        self._checkValid(self.root).0
+        _checkValid(root).0
     }
 }
