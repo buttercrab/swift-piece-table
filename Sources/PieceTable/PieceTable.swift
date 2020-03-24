@@ -186,9 +186,9 @@ extension PieceTable {
         _ = splitNode(node: endNode, pos: end)
         endNode = tree.findContains(position: end)
 
-        while !(startNode == endNode) {
-            let next = startNode?.next()
-            tree.erase(startNode!)
+        while let s = startNode, s != endNode {
+            let next = s.next()
+            tree.erase(s)
             startNode = next
         }
         _ = combineNode(endNode)
