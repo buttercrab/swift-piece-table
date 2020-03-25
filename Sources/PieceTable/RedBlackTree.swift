@@ -1,41 +1,49 @@
 public protocol Measurable {
-    var count: Int { get }
+    var weight: Int { get }
 }
 
-public class RedBlackTreeNode<Element: Equatable & Measurable> {
+public class RedBlackTreeNode<Element: Measurable> {
     fileprivate var _value: Element
     public var value: Element {
         _value
     }
 
-    /// count contains size of subtree and color
-    /// `count = (size << 1) + color`
-    /// color
-    ///  - 0: black
-    ///  - 1: red
+    /// node count of subtree
     fileprivate var _count: Int
-    public var count: Int {
-        _count >> 1
+
+    fileprivate var count: Int {
+        get {
+            _count &>> 1
+        }
+
+        set {
+            _count = _count & 1 &+ newValue &<< 1
+        }
     }
 
+    /// color of node
     fileprivate var color: Int {
         get {
             _count & 1
         }
 
         // assert: val is 0 or 1
-        set(val) {
-            _count = _count & ~1 | val
+        set {
+            _count = _count & ~1 | newValue
         }
     }
+
+    /// contains total weight of subtree
+    fileprivate var weight: Int
 
     fileprivate var left: RedBlackTreeNode?
     fileprivate var right: RedBlackTreeNode?
     fileprivate weak var parent: RedBlackTreeNode?
 
-    public init(value: Element, left: RedBlackTreeNode?, right: RedBlackTreeNode?, parent: RedBlackTreeNode?) {
+    public init(_ value: Element, left: RedBlackTreeNode?, right: RedBlackTreeNode?, parent: RedBlackTreeNode?) {
         _value = value
-        _count = 3 // (1 << 1) + 1
+        _count = 3 // 1 << 1 + 1
+        weight = value.weight
         self.left = left
         self.right = right
         self.parent = parent
@@ -45,22 +53,22 @@ public class RedBlackTreeNode<Element: Equatable & Measurable> {
     }
 
     public convenience init(value: Element) {
-        self.init(value: value, left: nil, right: nil, parent: nil)
+        self.init(value, left: nil, right: nil, parent: nil)
     }
 }
 
 /// Equatable extension
 extension RedBlackTreeNode: Equatable {
     public static func ==(lhs: RedBlackTreeNode, rhs: RedBlackTreeNode) -> Bool {
-        lhs._value == rhs._value
+        lhs === rhs
     }
 }
 
 /// Node update for count
 extension RedBlackTreeNode {
     fileprivate func update() {
-        let count = (left?.count ?? 0) + (right?.count ?? 0) + value.count
-        _count = count << 1 + _count & 1
+        weight = (left?.weight ?? 0) &+ (right?.weight ?? 0) &+ value.weight
+        count = (left?.count ?? 0) &+ (right?.count ?? 0) &+ 1
     }
 
     fileprivate func updateToTop() {
@@ -92,7 +100,24 @@ extension RedBlackTreeNode {
 }
 
 extension RedBlackTreeNode {
-    public var position: Int {
+    public var positionByWeight: Int {
+        var res = left?.weight ?? 0
+        var n = self
+
+        while true {
+            guard let parent = n.parent else {
+                break
+            }
+            if parent.right == n {
+                res += (parent.left?.weight ?? 0) + parent.value.weight
+            }
+            n = parent
+        }
+
+        return res
+    }
+
+    public var positionByCount: Int {
         var res = left?.count ?? 0
         var n = self
 
@@ -101,7 +126,25 @@ extension RedBlackTreeNode {
                 break
             }
             if parent.right == n {
-                res += (parent.left?.count ?? 0) + parent.value.count
+                res += (parent.left?.count ?? 0) + 1
+            }
+            n = parent
+        }
+
+        return res
+    }
+
+    public var position: (Int, Int) {
+        var res = (left?.count ?? 0, left?.weight ?? 0)
+        var n = self
+
+        while true {
+            guard let parent = n.parent else {
+                break
+            }
+            if parent.right == n {
+                res.0 += (parent.left?.count ?? 0) + 1
+                res.1 += (parent.left?.weight ?? 0) + parent.value.weight
             }
             n = parent
         }
@@ -147,17 +190,13 @@ extension RedBlackTreeNode {
     }
 }
 
-public class RedBlackTree<Element: Equatable & Measurable> {
+public class RedBlackTree<Element: Measurable> {
     public typealias Node = RedBlackTreeNode<Element>
 
     private var root: Node?
-    private var _count: Int
+    private var _count: Int = 0
     public var count: Int {
         _count
-    }
-
-    public init() {
-        _count = 0
     }
 }
 
@@ -187,7 +226,8 @@ extension RedBlackTree {
         n.parent = a
         b?.parent = n
 
-        a._count = n._count
+        a.count = n.count
+        a.weight = n.weight
         n.update()
 
         if p == nil {
@@ -219,7 +259,8 @@ extension RedBlackTree {
         n.parent = a
         b?.parent = n
 
-        a._count = n._count
+        a.count = n.count
+        a.weight = n.weight
         n.update()
 
         if p == nil {
@@ -229,17 +270,17 @@ extension RedBlackTree {
 }
 
 extension RedBlackTree {
-    private func findOrLast(_ position: inout Int) -> Node? {
+    private func findOrLastByWeight(_ position: inout Int) -> Node? {
         guard var n = root else {
             return nil
         }
 
         while true {
-            let k = n.left?.count ?? 0
+            let k = n.left?.weight ?? 0
 
             if k < position {
                 if let right = n.right {
-                    position -= k + n.value.count
+                    position -= k + n.value.weight
                     n = right
                 } else {
                     return n
@@ -254,16 +295,16 @@ extension RedBlackTree {
         }
     }
 
-    public func findContains(position: Int) -> Node? {
+    public func findByWeight(position: Int) -> Node? {
         guard var n = root else {
             return nil
         }
         var pos = position
 
         while true {
-            let k = n.left?.count ?? 0
+            let k = n.left?.weight ?? 0
 
-            if k <= pos, pos < k + n.value.count {
+            if k <= pos, pos < k + n.value.weight {
                 return n
             }
             if pos < k {
@@ -274,7 +315,36 @@ extension RedBlackTree {
                 }
             } else {
                 if let right = n.right {
-                    pos -= k + n.value.count
+                    pos -= k + n.value.weight
+                    n = right
+                } else {
+                    return nil
+                }
+            }
+        }
+    }
+
+    public func findByCount(position: Int) -> Node? {
+        guard var n = root else {
+            return nil
+        }
+        var pos = position
+
+        while true {
+            let k = n.left?.count ?? 0
+
+            if k == pos {
+                return n
+            }
+            if pos < k {
+                if let left = n.left {
+                    n = left
+                } else {
+                    return nil
+                }
+            } else {
+                if let right = n.right {
+                    pos -= k + 1
                     n = right
                 } else {
                     return nil
@@ -415,7 +485,7 @@ extension RedBlackTree {
         _count += 1
         var position = position
         let new = Node(value: value)
-        guard let last = findOrLast(&position) else {
+        guard let last = findOrLastByWeight(&position) else {
             root = new
             root?.color = 0
             return new
@@ -489,6 +559,26 @@ extension RedBlackTree {
 
     public var endNode: Node? {
         root?.max()
+    }
+}
+
+extension RedBlackTree: Collection {
+    public typealias Index = Int
+
+    public var startIndex: Index {
+        0
+    }
+
+    public var endIndex: Index {
+        count
+    }
+
+    public subscript(i: Index) -> Element {
+        findByCount(position: i)!.value
+    }
+
+    public func index(after i: Index) -> Index {
+        i + 1
     }
 }
 

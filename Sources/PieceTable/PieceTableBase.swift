@@ -16,7 +16,7 @@ extension Piece {
 }
 
 extension Piece: Measurable {
-    public var count: Int {
+    public var weight: Int {
         end - start
     }
 }
@@ -125,7 +125,7 @@ extension PieceTableBase {
             return (nil, nil)
         }
 
-        let start = node.position
+        let start = node.positionByWeight
         let (a, b) = node.value.split(at: pos - start + node.value.start)
 
         if !a.isEmpty, !b.isEmpty {
@@ -147,7 +147,7 @@ extension PieceTableBase {
         }
 
         let value = Piece(index: node.value.index, start: before.value.start, end: node.value.end)
-        let pos = before.position
+        let pos = before.positionByWeight
         tree.erase(node)
         tree.erase(before)
         return tree.insert(position: pos, value: value)
@@ -158,14 +158,14 @@ extension PieceTableBase {
             throw IndexError.outOfRange
         }
 
-        let node = tree.findContains(position: from)
+        let node = tree.findByWeight(position: from)
         _ = splitNode(node: node, pos: from)
         let pieces = buffer.append(content)
 
         var index = from
         for piece in pieces {
             _ = combineNode(tree.insert(position: index, value: piece))
-            index += piece.count
+            index += piece.weight
         }
 
         _count += content.count
@@ -179,12 +179,12 @@ extension PieceTableBase {
             throw IndexError.outOfRange
         }
 
-        var startNode = tree.findContains(position: start)
+        var startNode = tree.findByWeight(position: start)
         _ = splitNode(node: startNode, pos: start)
-        startNode = tree.findContains(position: start)
-        var endNode = tree.findContains(position: end)
+        startNode = tree.findByWeight(position: start)
+        var endNode = tree.findByWeight(position: end)
         _ = splitNode(node: endNode, pos: end)
-        endNode = tree.findContains(position: end)
+        endNode = tree.findByWeight(position: end)
 
         while let s = startNode, s != endNode {
             let next = s.next()
@@ -269,10 +269,10 @@ public class SubPieceTable {
 
     public var content: String {
         var res = ""
-        guard var startNode = table.tree.findContains(position: self.start) else {
+        guard var startNode = table.tree.findByWeight(position: self.start) else {
             return ""
         }
-        let endNode = table.tree.findContains(position: end)
+        let endNode = table.tree.findByWeight(position: end)
         var start = self.start - startNode.value.start
 
         while startNode != endNode {
@@ -294,7 +294,7 @@ public class SubPieceTable {
 
 extension PieceTableBase {
     public subscript(index: Index) -> Character {
-        guard let node = tree.findContains(position: index) else {
+        guard let node = tree.findByWeight(position: index) else {
             fatalError("[PieceTable] Index out of range")
         }
         return buffer.getContent(node.value)[index - node.value.start]
@@ -342,5 +342,36 @@ extension PieceTableBase: Sequence {
 
     public func makeIterator() -> Iterator {
         Iterator(node: tree.startNode, index: 0, table: self)
+    }
+}
+
+private class LineSize {
+    private var _count: Int
+
+    init(count: Int) {
+        _count = count
+    }
+}
+
+extension LineSize: Measurable {
+    public var weight: Int {
+        _count
+    }
+}
+
+private class LineHandler {
+    private var _count: Int = 0
+    public var count: Int {
+        _count
+    }
+
+    private var lines: RedBlackTree<LineSize> = RedBlackTree()
+
+    init() {
+    }
+}
+
+extension LineHandler {
+    public func insert(at _: Int) {
     }
 }
