@@ -1,7 +1,10 @@
+/// Measure protocol for getting weight of Element in Red Black Tree
 public protocol Measurable {
     var weight: Int { get }
 }
 
+// Test Done!
+// Correct Red Black Tree
 public class RedBlackTreeNode<Element: Measurable> {
     fileprivate var _value: Element
     public var value: Element {
@@ -13,15 +16,17 @@ public class RedBlackTreeNode<Element: Measurable> {
 
     fileprivate var count: Int {
         get {
-            _count &>> 1
+            _count >> 1
         }
 
         set {
-            _count = _count & 1 &+ newValue &<< 1
+            _count = _count & 1 + newValue << 1
         }
     }
 
     /// color of node
+    /// 0: Black
+    /// 1: Red
     fileprivate var color: Int {
         get {
             _count & 1
@@ -67,8 +72,61 @@ extension RedBlackTreeNode: Equatable {
 /// Node update for count
 extension RedBlackTreeNode {
     fileprivate func update() {
-        weight = (left?.weight ?? 0) &+ (right?.weight ?? 0) &+ value.weight
-        count = (left?.count ?? 0) &+ (right?.count ?? 0) &+ 1
+//        version 1
+//        weight = (left?.weight ?? 0) + (right?.weight ?? 0) + value.weight
+//        count = (left?.count ?? 0) + (right?.count ?? 0) + 1
+
+//        version 2 - fastest on bench
+        if let left = left {
+            if let right = right {
+                weight = left.weight + right.weight + value.weight
+                count = left.count + right.count + 1
+            } else {
+                weight = left.weight + value.weight
+                count = left.count + 1
+            }
+        } else {
+            if let right = right {
+                weight = right.weight + value.weight
+                count = right.count + 1
+            } else {
+                weight = value.weight
+                count = 1
+            }
+        }
+
+//        version 3
+//        if left == nil {
+//            if right == nil {
+//                weight = value.weight
+//                count = 1
+//            } else {
+//                weight = right!.weight + value.weight
+//                count = right!.count + 1
+//            }
+//        } else {
+//            if right == nil {
+//                weight = left!.weight + value.weight
+//                count = left!.count + 1
+//            } else {
+//                weight = left!.weight + right!.weight + value.weight
+//                count = left!.count + right!.count + 1
+//            }
+//        }
+
+//        version 4
+//        weight = value.weight
+//        count = 1
+//
+//        if let left = left {
+//            weight += left.weight
+//            count += left.count
+//        }
+//
+//        if let right = right {
+//            weight += right.weight
+//            count += right.count
+//        }
     }
 
     fileprivate func updateToTop() {
@@ -77,6 +135,13 @@ extension RedBlackTreeNode {
             cur.update()
             i = cur.parent
         }
+    }
+}
+
+extension RedBlackTreeNode {
+    public func updateValue(_ value: Element) {
+        _value = value
+        updateToTop()
     }
 }
 
@@ -270,31 +335,6 @@ extension RedBlackTree {
 }
 
 extension RedBlackTree {
-    private func findOrLastByWeight(_ position: inout Int) -> Node? {
-        guard var n = root else {
-            return nil
-        }
-
-        while true {
-            let k = n.left?.weight ?? 0
-
-            if k < position {
-                if let right = n.right {
-                    position -= k + n.value.weight
-                    n = right
-                } else {
-                    return n
-                }
-            } else {
-                if let left = n.left {
-                    n = left
-                } else {
-                    return n
-                }
-            }
-        }
-    }
-
     public func findByWeight(position: Int) -> Node? {
         guard var n = root else {
             return nil
@@ -355,11 +395,6 @@ extension RedBlackTree {
 }
 
 extension RedBlackTree {
-    @inline(__always)
-    private func siblingNode(_ n: Node) -> Node? {
-        n.parent?.left == n ? n.parent?.right : n.parent?.left
-    }
-
     private func balanceAfterInsert(_ n: Node) {
         var n = n
         while n != root {
@@ -368,8 +403,8 @@ extension RedBlackTree {
                 break
             }
 
-            let u = siblingNode(p)
             let g = p.parent!
+            let u = g.left == p ? g.right : g.left
 
             if u?.color == 1 {
                 u?.color = 0
@@ -383,127 +418,166 @@ extension RedBlackTree {
                 if p.right == n {
                     leftRotate(p)
                     rightRotate(g)
-                    g.color = 1
                     n.color = 0
                 } else {
                     rightRotate(g)
-                    g.color = 1
                     p.color = 0
                 }
             } else {
                 if p.left == n {
                     rightRotate(p)
                     leftRotate(g)
-                    g.color = 1
                     n.color = 0
                 } else {
                     leftRotate(g)
-                    g.color = 1
                     p.color = 0
                 }
             }
+            g.color = 1
             break
         }
 
         root?.color = 0
     }
 
-    private func balanceAfterErase(_ n: Node) {
+    private func balanceAfterRemove(_ n: Node) {
         var n = n
         while n != root {
             let p = n.parent!
 
             if n == p.left {
-                let s = p.right
-                let l = s?.left
-                let r = s?.right
+                if let s = p.right {
+                    if s.color == 1 {
+                        leftRotate(p)
+                        p.color = 1
+                        s.color = 0
+                    } else {
+                        let l = s.left
+                        let r = s.right
 
-                if r?.color == 1 {
-                    leftRotate(p)
-                    r?.color = 0
-                    s?.color = p.color
-                    p.color = 1
-                    break
+                        if r?.color == 1 {
+                            leftRotate(p)
+                            r!.color = 0
+                            s.color = p.color
+                            p.color = 0
+                            break
+                        }
+                        if l?.color == 1 {
+                            rightRotate(s)
+                            leftRotate(p)
+                            l!.color = p.color
+                            p.color = 0
+                            break
+                        }
+                        if p.color == 1 {
+                            p.color = 0
+                            s.color = 1
+                            break
+                        }
+                        s.color = 1
+                        n = p
+                    }
+                } else {
+                    if p.color == 0 {
+                        n = p
+                    } else {
+                        p.color = 0
+                        break
+                    }
                 }
-                if l?.color == 1 {
-                    rightRotate(s!)
-                    s?.color = 1
-                    l?.color = 0
-                    continue
-                }
-                if p.color == 1 {
-                    p.color = 0
-                    s?.color = 1
-                    break
-                }
-                if s?.color == 1 {
-                    leftRotate(p)
-                    p.color = 1
-                    s?.color = 0
-                    continue
-                }
-                s?.color = 1
-                n = p
             } else {
-                let s = p.left
-                let l = s?.left
-                let r = s?.right
+                if let s = p.left {
+                    if s.color == 1 {
+                        rightRotate(p)
+                        p.color = 1
+                        s.color = 0
+                    } else {
+                        let l = s.left
+                        let r = s.right
 
-                if l?.color == 1 {
-                    rightRotate(p)
-                    l?.color = 0
-                    s?.color = p.color
-                    p.color = 1
-                    break
+                        if l?.color == 1 {
+                            rightRotate(p)
+                            l!.color = 0
+                            s.color = p.color
+                            p.color = 0
+                            break
+                        }
+                        if r?.color == 1 {
+                            leftRotate(s)
+                            rightRotate(p)
+                            r!.color = p.color
+                            p.color = 0
+                            break
+                        }
+                        if p.color == 1 {
+                            p.color = 0
+                            s.color = 1
+                            break
+                        }
+                        s.color = 1
+                        n = p
+                    }
+                } else {
+                    if p.color == 0 {
+                        n = p
+                    } else {
+                        p.color = 0
+                        break
+                    }
                 }
-                if r?.color == 1 {
-                    leftRotate(s!)
-                    s?.color = 1
-                    r?.color = 0
-                    continue
-                }
-                if p.color == 1 {
-                    p.color = 0
-                    s?.color = 1
-                    break
-                }
-                if s?.color == 1 {
-                    rightRotate(p)
-                    p.color = 1
-                    s?.color = 0
-                    continue
-                }
-                s?.color = 1
-                n = p
             }
         }
     }
 }
 
 extension RedBlackTree {
-    public func insert(position: Int, value: Element) -> Node {
+    public func insert(_ value: Element, at: Int) -> Node {
         _count += 1
-        var position = position
         let new = Node(value: value)
-        guard let last = findOrLastByWeight(&position) else {
+        guard var n = root else {
+            new.color = 0
             root = new
-            root?.color = 0
             return new
         }
 
-        if position == 0 {
-            last.left = new
-        } else {
-            last.right = new
+        var at = at
+        while true {
+            if let left = n.left {
+                if left.weight < at {
+                    if let right = n.right {
+                        at -= left.weight + n.value.weight
+                        n = right
+                    } else {
+                        n.right = new
+                        break
+                    }
+                } else {
+                    n = left
+                }
+            } else {
+                if 0 < at {
+                    if let right = n.right {
+                        at -= n.value.weight
+                        n = right
+                    } else {
+                        n.right = new
+                        break
+                    }
+                } else {
+                    n.left = new
+                    break
+                }
+            }
         }
-        new.parent = last
+
+        new.parent = n
         new.updateToTop()
 
         balanceAfterInsert(new)
         return new
     }
 
-    public func erase(_ node: Node) {
+    public func remove(_ node: Node) {
         if _count == 0 {
             return
         }
@@ -514,6 +588,7 @@ extension RedBlackTree {
         }
 
         let last: Node
+        let child: Node?
         if var right = node.right {
             while let left = right.left {
                 right = left
@@ -521,14 +596,15 @@ extension RedBlackTree {
             swap(&right._value, &node._value)
             right.updateToTop()
             last = right
+            child = last.right
         } else {
             last = node
+            child = last.left
         }
-        let child = last.left ?? last.right
 
         if let parent = last.parent {
             if child?.color ?? 0 == 0, last.color == 0 {
-                balanceAfterErase(last)
+                balanceAfterRemove(last)
             } else {
                 child?.color = 0
             }
@@ -541,9 +617,13 @@ extension RedBlackTree {
             child?.parent = parent
             parent.updateToTop()
         } else {
-            root = child
-            child?.parent = nil
-            child?.color = 0
+            if let c = child {
+                c.color = 0
+                c.parent = nil
+                root = c
+            } else {
+                root = nil
+            }
         }
 
         last.parent = nil
@@ -574,7 +654,13 @@ extension RedBlackTree: Collection {
     }
 
     public subscript(i: Index) -> Element {
-        findByCount(position: i)!.value
+        get {
+            findByCount(position: i)!.value
+        }
+
+        set {
+            findByCount(position: i)!.updateValue(newValue)
+        }
     }
 
     public func index(after i: Index) -> Index {

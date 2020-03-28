@@ -28,7 +28,7 @@ extension Piece: Equatable {
 }
 
 extension Piece {
-    fileprivate func split(at: Int) -> (Piece, Piece) {
+    fileprivate func split(_ at: Int) -> (Piece, Piece) {
         (Piece(index: index, start: start, end: at), Piece(index: index, start: at, end: end))
     }
 }
@@ -46,7 +46,7 @@ private class Buffer {
 }
 
 extension Buffer {
-    public func getAllPieces() -> [Piece] {
+    fileprivate func getAllPieces() -> [Piece] {
         var res = [Piece]()
         res.reserveCapacity(data.count)
         for i in 0..<data.count {
@@ -109,35 +109,31 @@ public class PieceTableBase {
 
     public var tree: RedBlackTree<Piece> = RedBlackTree()
 
-    public init(origin: String = "", bufferSize: Int = 64000) {
+    public init(origin: String = "", bufferSize: Int = 64_000) {
         buffer = Buffer(origin: origin, bufferSize: bufferSize)
-        try! write(content: origin, from: 0)
+        insert(origin, at: 0)
     }
 }
 
-enum IndexError: Error {
-    case outOfRange
-}
-
 extension PieceTableBase {
-    fileprivate func splitNode(node: Node?, pos: Index) -> (Node?, Node?) {
+    fileprivate func split(_ node: Node?, at: Index) -> (Node?, Node?) {
         guard let node = node else {
             return (nil, nil)
         }
 
         let start = node.positionByWeight
-        let (a, b) = node.value.split(at: pos - start + node.value.start)
+        let (a, b) = node.value.split(at - start + node.value.start)
 
         if !a.isEmpty, !b.isEmpty {
-            tree.erase(node)
-            return (tree.insert(position: start, value: a),
-                    tree.insert(position: pos, value: b))
+            tree.remove(node)
+            return (tree.insert(a, at: start),
+                    tree.insert(b, at: at))
         }
 
         return (nil, nil)
     }
 
-    fileprivate func combineNode(_ node: Node?) -> Node? {
+    fileprivate func combine(_ node: Node?) -> Node? {
         guard let node = node, let before = node.prev() else {
             return nil
         }
@@ -148,50 +144,55 @@ extension PieceTableBase {
 
         let value = Piece(index: node.value.index, start: before.value.start, end: node.value.end)
         let pos = before.positionByWeight
-        tree.erase(node)
-        tree.erase(before)
-        return tree.insert(position: pos, value: value)
+        tree.remove(node)
+        tree.remove(before)
+        return tree.insert(value, at: pos)
     }
 
-    public func write(content: String, from: Index) throws {
-        if from < 0 || from > count {
-            throw IndexError.outOfRange
-        }
-
-        let node = tree.findByWeight(position: from)
-        _ = splitNode(node: node, pos: from)
+    public func insert(_ content: String, at: Index) {
+        let node = tree.findByWeight(position: at)
+        _ = split(node, at: at)
         let pieces = buffer.append(content)
 
-        var index = from
+        var index = at
         for piece in pieces {
-            _ = combineNode(tree.insert(position: index, value: piece))
+            _ = combine(tree.insert(piece, at: index))
             index += piece.weight
         }
 
         _count += content.count
     }
 
-    public func delete(_ range: Range<Index>) throws {
+    public func remove(_ at: Index) {
+        let node = tree.findByWeight(position: at)
+        let (_, a) = split(node, at: at)
+        guard let n = a else {
+            return
+        }
+        if n.value.end == at + 1 {
+            tree.remove(n)
+        } else {
+            n.updateValue(Piece(index: n.value.index, start: at + 1, end: n.value.end))
+        }
+    }
+
+    public func removeSubrange(_ range: Range<Index>) {
         let start = range.lowerBound
         let end = start + range.count
 
-        if start < 0 || start > count || end < 0 || end > count {
-            throw IndexError.outOfRange
-        }
-
         var startNode = tree.findByWeight(position: start)
-        _ = splitNode(node: startNode, pos: start)
+        _ = split(startNode, at: start)
         startNode = tree.findByWeight(position: start)
         var endNode = tree.findByWeight(position: end)
-        _ = splitNode(node: endNode, pos: end)
+        _ = split(endNode, at: end)
         endNode = tree.findByWeight(position: end)
 
         while let s = startNode, s != endNode {
             let next = s.next()
-            tree.erase(s)
+            tree.remove(s)
             startNode = next
         }
-        _ = combineNode(endNode)
+        _ = combine(endNode)
 
         _count -= range.count
     }
@@ -345,33 +346,8 @@ extension PieceTableBase: Sequence {
     }
 }
 
-private class LineSize {
-    private var _count: Int
-
-    init(count: Int) {
-        _count = count
-    }
-}
-
-extension LineSize: Measurable {
-    public var weight: Int {
-        _count
-    }
-}
-
-private class LineHandler {
-    private var _count: Int = 0
-    public var count: Int {
-        _count
-    }
-
-    private var lines: RedBlackTree<LineSize> = RedBlackTree()
-
-    init() {
-    }
-}
-
-extension LineHandler {
-    public func insert(at _: Int) {
+extension PieceTableBase {
+    public func checkValid() -> Bool {
+        tree.checkValid()
     }
 }

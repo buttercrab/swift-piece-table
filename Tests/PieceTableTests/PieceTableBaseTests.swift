@@ -16,47 +16,11 @@ func randomString(length: Int) -> String {
     return res
 }
 
-class Timer {
-    private var title: String
-    private var lastStart: Double
-    private var _time: Double
-    private var isRunning: Bool
-    public var time: Double {
-        _time + (isRunning ? Double(CFAbsoluteTimeGetCurrent() - lastStart) : 0)
-    }
-
-    public init(title: String = "") {
-        self.title = title
-        lastStart = 0
-        _time = 0
-        isRunning = false
-    }
-
-    public func start() {
-        if isRunning == false {
-            lastStart = CFAbsoluteTimeGetCurrent()
-            isRunning = true
-        }
-    }
-
-    public func pause() {
-        if isRunning == true {
-            let timeElapsed = CFAbsoluteTimeGetCurrent() - lastStart
-            _time += Double(timeElapsed)
-            isRunning = false
-        }
-    }
-
-    public func printTime() {
-        print("timer \(title): \(_time)")
-    }
-}
-
 final class PieceTableTests: XCTestCase {
     var table = PieceTableBase()
     var s = ""
-    let iterationCount = 1000
-    let stringCount = 20
+    let iterationCount = 100
+    let stringCount = 200
 
     override func setUp() {
         super.setUp()
@@ -73,7 +37,8 @@ final class PieceTableTests: XCTestCase {
             let pos = Int.random(in: 0...s.count)
             let t = randomString(length: stringCount)
             s.insert(contentsOf: t, at: s.index(s.startIndex, offsetBy: pos))
-            try! table.write(content: t, from: pos)
+            table.insert(t, at: pos)
+            XCTAssert(table.checkValid())
         }
         XCTAssertEqual(table.content, s)
     }
@@ -84,19 +49,19 @@ final class PieceTableTests: XCTestCase {
             for _ in 0..<iterationCount {
                 let pos = Int.random(in: 0...self.table.count)
                 let t = randomString(length: self.stringCount)
-                try! self.table.write(content: t, from: pos)
+                self.table.insert(t, at: pos)
             }
         }
     }
 
-    func testDelete() {
+    func testRemove() {
         s = ""
         table = PieceTableBase()
         for _ in 0..<iterationCount {
             let pos = Int.random(in: 0...s.count)
             let t = randomString(length: stringCount)
             s.insert(contentsOf: t, at: s.index(s.startIndex, offsetBy: pos))
-            try! table.write(content: t, from: pos)
+            table.insert(t, at: pos)
         }
 
         for _ in 0..<iterationCount {
@@ -104,18 +69,19 @@ final class PieceTableTests: XCTestCase {
             let start = s.index(s.startIndex, offsetBy: pos)
             let end = s.index(start, offsetBy: stringCount)
             s.removeSubrange(start..<end)
-            try! table.delete(pos..<pos + stringCount)
+            table.removeSubrange(pos..<pos + stringCount)
 
             pos = Int.random(in: 0...s.count)
             let t = randomString(length: stringCount)
             s.insert(contentsOf: t, at: s.index(s.startIndex, offsetBy: pos))
-            try! table.write(content: t, from: pos)
+            table.insert(t, at: pos)
         }
+//        XCTAssertEqual(table.content, s)
     }
 
     static var allTests = [
         ("testInsert", testInsert),
         ("testInsertPerformance", testInsertPerformance),
-        ("testDelete", testDelete),
+        ("testRemove", testRemove),
     ]
 }
