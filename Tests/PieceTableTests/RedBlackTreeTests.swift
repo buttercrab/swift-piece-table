@@ -11,7 +11,7 @@ class IntWrap: Measurable {
 
 final class RedBlackTreeTests: XCTestCase {
     var tree = RedBlackTree<IntWrap>()
-    let iterationCount = 100000
+    let iterationCount = 1000
     let numberLimit = 10000
 
     func testInsert() {
