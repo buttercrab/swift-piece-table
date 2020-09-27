@@ -5,7 +5,7 @@ public protocol Measurable {
 
 // Test Done!
 // Correct Red Black Tree
-public class RedBlackTreeNode<Element: Measurable> {
+public class IndexedRBTreeNode<Element: Measurable> {
     fileprivate var _value: Element
     public var value: Element {
         _value
@@ -41,11 +41,11 @@ public class RedBlackTreeNode<Element: Measurable> {
     /// contains total weight of subtree
     fileprivate var weight: Int
 
-    fileprivate var left: RedBlackTreeNode?
-    fileprivate var right: RedBlackTreeNode?
-    fileprivate weak var parent: RedBlackTreeNode?
+    fileprivate var left: IndexedRBTreeNode?
+    fileprivate var right: IndexedRBTreeNode?
+    fileprivate weak var parent: IndexedRBTreeNode?
 
-    public init(_ value: Element, left: RedBlackTreeNode?, right: RedBlackTreeNode?, parent: RedBlackTreeNode?) {
+    public init(_ value: Element, left: IndexedRBTreeNode?, right: IndexedRBTreeNode?, parent: IndexedRBTreeNode?) {
         _value = value
         _count = 3 // 1 << 1 + 1
         weight = value.weight
@@ -63,14 +63,14 @@ public class RedBlackTreeNode<Element: Measurable> {
 }
 
 /// Equatable extension
-extension RedBlackTreeNode: Equatable {
-    public static func ==(lhs: RedBlackTreeNode, rhs: RedBlackTreeNode) -> Bool {
+extension IndexedRBTreeNode: Equatable {
+    public static func ==(lhs: IndexedRBTreeNode, rhs: IndexedRBTreeNode) -> Bool {
         lhs === rhs
     }
 }
 
 /// Node update for count
-extension RedBlackTreeNode {
+extension IndexedRBTreeNode {
     fileprivate func update() {
 //        version 1
 //        weight = (left?.weight ?? 0) + (right?.weight ?? 0) + value.weight
@@ -130,7 +130,7 @@ extension RedBlackTreeNode {
     }
 
     fileprivate func updateToTop() {
-        var i: RedBlackTreeNode<Element>? = self
+        var i: IndexedRBTreeNode<Element>? = self
         while let cur = i {
             cur.update()
             i = cur.parent
@@ -138,7 +138,7 @@ extension RedBlackTreeNode {
     }
 }
 
-extension RedBlackTreeNode {
+extension IndexedRBTreeNode {
     public func updateValue(_ value: Element) {
         _value = value
         updateToTop()
@@ -146,8 +146,8 @@ extension RedBlackTreeNode {
 }
 
 /// Minimum and Maximum
-extension RedBlackTreeNode {
-    fileprivate func min() -> RedBlackTreeNode {
+extension IndexedRBTreeNode {
+    fileprivate func min() -> IndexedRBTreeNode {
         var tmp = self
         while let left = tmp.left {
             tmp = left
@@ -155,7 +155,7 @@ extension RedBlackTreeNode {
         return tmp
     }
 
-    fileprivate func max() -> RedBlackTreeNode {
+    fileprivate func max() -> IndexedRBTreeNode {
         var tmp = self
         while let right = tmp.right {
             tmp = right
@@ -164,7 +164,7 @@ extension RedBlackTreeNode {
     }
 }
 
-extension RedBlackTreeNode {
+extension IndexedRBTreeNode {
     public var positionByWeight: Int {
         var res = left?.weight ?? 0
         var n = self
@@ -219,8 +219,8 @@ extension RedBlackTreeNode {
 }
 
 /// Iterable extension
-extension RedBlackTreeNode {
-    public func prev() -> RedBlackTreeNode? {
+extension IndexedRBTreeNode {
+    public func prev() -> IndexedRBTreeNode? {
         if let left = self.left {
             return left.max()
         }
@@ -237,7 +237,7 @@ extension RedBlackTreeNode {
         return nil
     }
 
-    public func next() -> RedBlackTreeNode? {
+    public func next() -> IndexedRBTreeNode? {
         if let right = self.right {
             return right.min()
         }
@@ -255,8 +255,8 @@ extension RedBlackTreeNode {
     }
 }
 
-public class RedBlackTree<Element: Measurable> {
-    public typealias Node = RedBlackTreeNode<Element>
+public class IndexedRBTree<Element: Measurable> {
+    public typealias Node = IndexedRBTreeNode<Element>
 
     private var root: Node?
     private var _count: Int = 0
@@ -266,7 +266,7 @@ public class RedBlackTree<Element: Measurable> {
 }
 
 /// Rotation in tree
-extension RedBlackTree {
+extension IndexedRBTree {
     /// Left Rotation
     ///
     ///   p            p
@@ -334,7 +334,7 @@ extension RedBlackTree {
     }
 }
 
-extension RedBlackTree {
+extension IndexedRBTree {
     public func findByWeight(position: Int) -> Node? {
         guard var n = root else {
             return nil
@@ -358,7 +358,11 @@ extension RedBlackTree {
                     pos -= k + n.value.weight
                     n = right
                 } else {
-                    return nil
+                    if pos == k + n.value.weight {
+                        return n
+                    } else {
+                        return nil
+                    }
                 }
             }
         }
@@ -394,7 +398,7 @@ extension RedBlackTree {
     }
 }
 
-extension RedBlackTree {
+extension IndexedRBTree {
     private func balanceAfterInsert(_ n: Node) {
         var n = n
         while n != root {
@@ -530,7 +534,7 @@ extension RedBlackTree {
     }
 }
 
-extension RedBlackTree {
+extension IndexedRBTree {
     public func insert(_ value: Element, at: Int) -> Node {
         _count += 1
         let new = Node(value: value)
@@ -632,7 +636,7 @@ extension RedBlackTree {
     }
 }
 
-extension RedBlackTree {
+extension IndexedRBTree {
     public var startNode: Node? {
         root?.min()
     }
@@ -642,7 +646,7 @@ extension RedBlackTree {
     }
 }
 
-extension RedBlackTree: Collection {
+extension IndexedRBTree: Collection {
     public typealias Index = Int
 
     public var startIndex: Index {
@@ -668,9 +672,9 @@ extension RedBlackTree: Collection {
     }
 }
 
-extension RedBlackTree: Sequence {
+extension IndexedRBTree: Sequence {
     public class Iterator: IteratorProtocol {
-        public typealias Node = RedBlackTreeNode<Element>
+        public typealias Node = IndexedRBTreeNode<Element>
 
         private var _value: Node?
         public var value: Node? {
@@ -694,7 +698,8 @@ extension RedBlackTree: Sequence {
     }
 }
 
-extension RedBlackTree {
+// For debugging
+extension IndexedRBTree {
     private func _checkValid(_ node: Node?) -> (Bool, Int) {
         guard let node = node else {
             return (true, 0)

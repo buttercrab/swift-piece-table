@@ -95,7 +95,7 @@ extension Buffer {
 public class PieceTableBase {
     public typealias Index = Int
     public typealias Element = Character
-    fileprivate typealias Node = RedBlackTreeNode<Piece>
+    fileprivate typealias Node = IndexedRBTreeNode<Piece>
 
     fileprivate var buffer: Buffer
     public var bufferSize: Int {
@@ -107,7 +107,7 @@ public class PieceTableBase {
         _count
     }
 
-    public var tree: RedBlackTree<Piece> = RedBlackTree()
+    public var tree: IndexedRBTree<Piece> = IndexedRBTree()
 
     public init(origin: String = "", bufferSize: Int = 64_000) {
         buffer = Buffer(origin: origin, bufferSize: bufferSize)

@@ -10,12 +10,12 @@ class IntWrap: Measurable {
 }
 
 final class RedBlackTreeTests: XCTestCase {
-    var tree = RedBlackTree<IntWrap>()
+    var tree = IndexedRBTree<IntWrap>()
     let iterationCount = 1000
     let numberLimit = 10000
 
     func testInsert() {
-        tree = RedBlackTree()
+        tree = IndexedRBTree()
         var sum = 0
         for _ in 0..<iterationCount {
             let t = Int.random(in: 1...numberLimit)
@@ -26,7 +26,7 @@ final class RedBlackTreeTests: XCTestCase {
     }
 
     func testInsertPerformance() {
-        tree = RedBlackTree()
+        tree = IndexedRBTree()
         var sum = 0
         measure {
             for _ in 0..<iterationCount {
@@ -38,7 +38,7 @@ final class RedBlackTreeTests: XCTestCase {
     }
 
     func testRemove() {
-        tree = RedBlackTree()
+        tree = IndexedRBTree()
         var sum = 0
         for _ in 0..<iterationCount {
             let t = Int.random(in: 1...numberLimit)
